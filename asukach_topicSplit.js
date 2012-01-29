@@ -3,7 +3,7 @@ author ustreamer-01647
 latest update 2012年1月26日19時16分
 */
 
-/* asuka ch topic perttern
+/* asuka ch topic pattern
 通常状態または対決状態
 	対決状態ならば先頭が 対決「
 各chヘッダを探す
@@ -20,69 +20,122 @@ latest update 2012年1月26日19時16分
 */
 
 // setting
-var targetChannel = "#paulga";
+var TargetChannel = "#paulga";
+var ReserveText = "準備中";
 
 // global vars
 var channelTopic;
+var streams;
 var taiketu;
-var u1;
-var j1;
-var u2;
-var j2;
 var taikai;
 
-function event::onLoad()
+function stream( name )
 {
-	initialize();
+	this.name = name;
+	this.status = 0; // 未設定0，準備中1，使用中2
+	this.topic = "";
+	
+	this.toString = function()
+	{
+		switch( this.status )
+		{
+		case 1:
+			return this.name + ReserveText;
+		case 2:
+			return this.name + "「" + this.topic + "」";
+		case 0:
+		default:
+			return "";
+		}
+	}
 }
 
 function initialize()
 {
 	channelTopic = "";
 	taiketu = "";
-	u1 = "";
-	j1 = "";
-	u2 = "";
-	j2 = "";
-	taikai = "http://bit.ly/asuka_ch";
+	streams = new Array( new stream("Ust01"), new stream("Jus01"), new stream("Ust02"), new stream("Jus02") );
+	taikai = " http://bit.ly/asuka_ch";
 }
 
 function asukach_topicSplit ( topic )
 {
-	endBracket = 0;
+	endBracket = 0; // 文字列検索始点ポインタ
 	// 対決判定
 	if ( 0 <= channelTopic.search( /^対決「/ ) )
 	{
 		// 対決中
 		endBracket = channelTopic.search( /」/ );
 		taiketu = channelTopic.substring( "対決「".length, endBracket );
-		log(endBracket);
+		// 通常運行時に合わせるため，さらに 1 加算する
+		endBracket += "」".length + 1;
 	}else
 	{
 		// 通常運行
-		Head = new Array("Ust0", "Jus0");
-		Num = new Array("1", "2");
-		Ready = "準備中";
-		startBracketChar = "「";
+		for ( i in streams )
+		{
+			// 接頭辞（Ust01だのJus02だの）を探す
+			regExp = new RegExp ( "^" + streams[i].name );
+			result = channelTopic.substring(endBracket).search( regExp );
+			if ( -1 == result )
+			{
+				continue;
+			}
+			else
+			{
+				// 準備中か否か
+				regExp = new RegExp ( "^" + ReserveText );
+				result = channelTopic.substring( endBracket + streams[i].name.length ).search ( regExp );
+				if ( 0 == result )
+				{
+					// 準備中
+					streams[i].status = 1;
+					endBracket += streams[i].name.length + ReserveText.length + 1;
+				}else
+				{
+					// 使用中
+					streams[i].status = 2;
+					topicStart = endBracket + streams[i].name.length + "「".length;
+					streams[i].topic = channelTopic.substr (
+						topicStart,
+						channelTopic.substring ( topicStart ).search("」")
+					);
+					// stream間は半角スペースを挿入しているため，さらに 1 加算する
+					endBracket += streams[i].toString().length + 1;
+				}
+			}
+		}
 	}
 	// 大会欄
-	if ( 0 < endBracket )
-		endBracket += 2;
-	if ( null == channelTopic.substring( endBracket ).match( taikai ) )
-		taikai = channelTopic.substring( endBracket );
-	log(endBracket);
-	loglog();
+	// 最後の閉じ括弧が 0 から変化しているとき，1 減算する
+	if ( 0 != endBracket )
+		endBracket -= 1;
+	taikai = channelTopic.substring( endBracket );
+	print(true);
 }
 
-function loglog()
+// デバッグ用表示
+function print( Notice )
 {
-	log( "topic: " + channelTopic );
-	log( "taiketu: " + taiketu );
-	log( "u1: " + u1 );
-	log( "j1: " + j1 );
-	log( "u2: " + u2 );
-	log( "j2: " + j2 );
-	log( "taikai: " + taikai );
+	if ( Notice )
+	{
+		send( TargetChannel, "topic: " + channelTopic );
+		send( TargetChannel, "taiketu: " + taiketu );
+		for ( i in streams )
+		{
+			send( TargetChannel, streams[i].toString());
+		}
+		send( TargetChannel, "taikai: " + taikai );
+	}else
+	{
+		log( "topic: " + channelTopic );
+		log( "taiketu: " + taiketu );
+		for ( s in streams )
+		{
+			log( s );
+		}
+		log( "taikai: " + taikai );
+	}
 }
 
 function event::onChannelText(prefix, channel, text)
@@ -93,7 +146,7 @@ function event::onChannelText(prefix, channel, text)
 		return;
 
 	if ( text == "chk" )
-		topic( targetChannel );
+		topic( TargetChannel );
 }
 
 // 現在のトピックを取得する
@@ -109,11 +162,15 @@ function event::onNumericReply( number, msg )
 	*/
 	if ( 332 != number )
 		return;
-	keyword = new RegExp ( "^" + targetChannel + " " );
+	keyword = new RegExp ( "^" + TargetChannel + " " );
 	if ( null ==  msg.match( keyword ) )
 		return;
 	
-	channelTopic = msg.substring ( (targetChannel + " ").length );
+	// 変数初期化
+	initialize();
+	// トピック抽出
+	channelTopic = msg.substring ( (TargetChannel + " ").length );
+	// トピック解析
 	asukach_topicSplit ( channelTopic );
 
 }
