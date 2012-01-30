@@ -3,7 +3,11 @@ author ustreamer-01647
 latest update 2012年1月26日19時16分
 */
 
-/* asuka ch topic pattern
+/* 用語
+ストリーム: stream．(ust|jus)[12]各個のチャンネルのこと
+タイトル: title．各ストリームのトピックタイトルのこと
+
+ * asuka ch topic pattern
 通常状態または対決状態
 	対決状態ならば先頭が 対決「
 各chヘッダを探す
@@ -17,11 +21,32 @@ latest update 2012年1月26日19時16分
 大会欄未設定か否か
 	大会欄未設定なら末尾が http://bit.ly/asuka_ch
 	設定時，大会欄文字列抽出は後回し
+
+ * トピックボット機能
+	初期化
+	対決設定と解除
+	大会設定と解除
+	ストリーム使用宣言，タイトル設定，使用解除
+
+if(ユースト1「」$/)||ユースト1｢｣$/)||ust1「」$/)||ust1｢｣$/)||ustream1「」$/)
+||ustream1｢｣$/)||ユーストリーム1「」$/)||ユーストリーム1｢｣$/)||ユースト１「」$/)|
+|ユースト１｢｣$/)||ust１「」$/)||ust１｢｣$/)||ustream１「」$/)||ustream１｢｣$/)|
+|ユーストリーム１「」$/)||ユーストリーム１｢｣$/)){
+
+if(ジャスティン1「」$/)||ジャスティン1｢｣$/)||jus1「」$/)||jus1｢｣$/)||justin1「」$/)|
+|justin1｢｣$/)||ジャス1「」$/)||ジャス1｢｣$/)||ジャスティン１「」$/)||ジャスティン１｢｣$/)
+||jus１「」$/)||jus１｢｣$/)||justin１「」$/)||justin１｢｣$/)||ジャス１「」$/)||ジャス１｢｣$/)){
+
 */
 
 // setting
 var TargetChannel = "#paulga";
 var ReserveText = "準備中";
+
+// 正規表現
+var titleBracketOpen = "[「｢]";
+var titleBracketClose = "[」｣]";
+var u1stringPattern = "(ユースト(リーム)?)|(ust(ream)?)[1１]";
 
 // global vars
 var channelTopic;
@@ -29,22 +54,30 @@ var streams;
 var taiketu;
 var taikai;
 
+/** ストリーム情報クラス
+ @param name ストリーム名称
+ this.status 未設定0，準備中1，使用中2
+*/
 function stream( name )
 {
-	this.name = name;
+	this.name = name; // Ust01やJus02などの，区別と表記に用いる文字列
 	this.status = 0; // 未設定0，準備中1，使用中2
-	this.topic = "";
+	this.title = ""; // 使用中ならば，なんらかの文字列が格納される
 	
+	// this.status 値によって変わる
 	this.toString = function()
 	{
 		switch( this.status )
 		{
 		case 1:
+			// 準備中
 			return this.name + ReserveText;
 		case 2:
-			return this.name + "「" + this.topic + "」";
+			// タイトル表示
+			return this.name + "「" + this.title + "」";
 		case 0:
 		default:
+			// 空文字列
 			return "";
 		}
 	}
@@ -55,10 +88,11 @@ function initialize()
 	channelTopic = "";
 	taiketu = "";
 	streams = new Array( new stream("Ust01"), new stream("Jus01"), new stream("Ust02"), new stream("Jus02") );
-	taikai = " http://bit.ly/asuka_ch";
+	taikai = "";
+	//taikai = " http://bit.ly/asuka_ch";
 }
 
-function asukach_topicSplit ( topic )
+function parseTopic ( topic )
 {
 	endBracket = 0; // 文字列検索始点ポインタ
 	// 対決判定
@@ -95,10 +129,10 @@ function asukach_topicSplit ( topic )
 				{
 					// 使用中
 					streams[i].status = 2;
-					topicStart = endBracket + streams[i].name.length + "「".length;
+					titleStart = endBracket + streams[i].name.length + "「".length;
 					streams[i].topic = channelTopic.substr (
-						topicStart,
-						channelTopic.substring ( topicStart ).search("」")
+						titleStart,
+						channelTopic.substring ( titleStart ).search("」")
 					);
 					// stream間は半角スペースを挿入しているため，さらに 1 加算する
 					endBracket += streams[i].toString().length + 1;
@@ -140,14 +174,23 @@ function print( Notice )
 
 function event::onChannelText(prefix, channel, text)
 {
-	if ( channel != "#paulga" )
+	if ( channel != TargetChannel )
 		return;
 	if ( prefix.nick != "paulga" )
 		return;
 
-	if ( text == "chk" )
-		topic( TargetChannel );
+	parseCommand ( text );
+
+//	if ( text == "chk" )
+	//	topic( TargetChannel );
 }
+
+function parseCommand ( text )
+{
+	re = new RegExp ( "^" + u1stringPattern + titleBracketOpen + titleBracketClose + "$" );
+	send ( TargetChannel, re.exec(text) );
+}
+
 
 // 現在のトピックを取得する
 function event::onNumericReply( number, msg )
@@ -171,7 +214,8 @@ function event::onNumericReply( number, msg )
 	// トピック抽出
 	channelTopic = msg.substring ( (TargetChannel + " ").length );
 	// トピック解析
-	asukach_topicSplit ( channelTopic );
+	parseTopic ( channelTopic );
 
 }
+
 
