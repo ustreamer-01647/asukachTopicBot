@@ -1,6 +1,6 @@
-/* asukach_topicSplit
+/* asukachTopicBot
 author ustreamer-01647
-latest update 2012年1月26日19時16分
+latest update 2012年1月31日7:57:12
 */
 
 /* 用語
@@ -28,15 +28,6 @@ latest update 2012年1月26日19時16分
 	大会設定と解除
 	ストリーム使用宣言，タイトル設定，使用解除
 
-if(ユースト1「」$/)||ユースト1｢｣$/)||ust1「」$/)||ust1｢｣$/)||ustream1「」$/)
-||ustream1｢｣$/)||ユーストリーム1「」$/)||ユーストリーム1｢｣$/)||ユースト１「」$/)|
-|ユースト１｢｣$/)||ust１「」$/)||ust１｢｣$/)||ustream１「」$/)||ustream１｢｣$/)|
-|ユーストリーム１「」$/)||ユーストリーム１｢｣$/)){
-
-if(ジャスティン1「」$/)||ジャスティン1｢｣$/)||jus1「」$/)||jus1｢｣$/)||justin1「」$/)|
-|justin1｢｣$/)||ジャス1「」$/)||ジャス1｢｣$/)||ジャスティン１「」$/)||ジャスティン１｢｣$/)
-||jus１「」$/)||jus１｢｣$/)||justin１「」$/)||justin１｢｣$/)||ジャス１「」$/)||ジャス１｢｣$/)){
-
 */
 
 // setting
@@ -58,9 +49,10 @@ var taikai;
  @param name ストリーム名称
  this.status 未設定0，準備中1，使用中2
 */
-function stream( name )
+function stream( name, nameRegExp )
 {
 	this.name = name; // Ust01やJus02などの，区別と表記に用いる文字列
+	this.nameRegExp = nameRegExp; // タイトル変更のとき受け付ける正規表現
 	this.status = 0; // 未設定0，準備中1，使用中2
 	this.title = ""; // 使用中ならば，なんらかの文字列が格納される
 	
@@ -87,7 +79,10 @@ function initialize()
 {
 	channelTopic = "";
 	taiketu = "";
-	streams = new Array( new stream("Ust01"), new stream("Jus01"), new stream("Ust02"), new stream("Jus02") );
+	streams = new Array( new stream("Ust01", "((ユースト(リーム)?)|(ust(ream)?))[1１]")
+		, new stream("Jus01", "((ジャス(ティン)?)|(jus(tin)?))[1１]")
+		, new stream("Ust02", "((ユースト(リーム)?)|(ust(ream)?))[2２]")
+		, new stream("Jus02", "((ジャス(ティン)?)|(jus(tin)?))[2２]") );
 	taikai = "";
 	//taikai = " http://bit.ly/asuka_ch";
 }
@@ -178,19 +173,21 @@ function event::onChannelText(prefix, channel, text)
 		return;
 	if ( prefix.nick != "paulga" )
 		return;
-
-	parseCommand ( text );
-
-//	if ( text == "chk" )
-	//	topic( TargetChannel );
+	
+	// 平時に使用する
+	//parseCommand ( text );
+	
+	// トピック変更コマンドテスト
+	commandtest();
+	
+	// トピック解析テスト
+	// 332 replyを誘う
+	//if ( text == "chk" ) topic( TargetChannel );
 }
 
 function parseCommand ( text )
 {
-	re = new RegExp ( "^" + u1stringPattern + titleBracketOpen + titleBracketClose + "$" );
-	send ( TargetChannel, re.exec(text) );
 }
-
 
 // 現在のトピックを取得する
 function event::onNumericReply( number, msg )
@@ -218,4 +215,57 @@ function event::onNumericReply( number, msg )
 
 }
 
+// トピック変更コマンドテスト
+function commandtest ()
+{
+	initialize();
+	
+	// ストリーム終了コマンド
+	testCommandStreamClose();
+}
+
+// ストリーム終了コマンドテスト
+function testCommandStreamClose ()
+{
+	var testPattern = new Array(
+		"ユースト1「」", "ユースト1｢｣", "ust1「」", "ust1｢｣", "ustream1「」"
+		, "ustream1｢｣", "ユーストリーム1「」", "ユーストリーム1｢｣", "ユースト１「」"
+		, "ユースト１｢｣", "ust１「」", "ust１｢｣", "ustream１「」", "ustream１｢｣"
+		, "ユーストリーム１「」", "ユーストリーム１｢｣" // 16
+		, "ジャスティン1「」", "ジャスティン1｢｣", "jus1「」", "jus1｢｣", "justin1「」"
+		, "justin1｢｣", "ジャス1「」", "ジャス1｢｣", "ジャスティン１「」"
+		, "ジャスティン１｢｣", "jus１「」", "jus１｢｣", "justin１「」", "justin１｢｣"
+		, "ジャス１「」", "ジャス１｢｣" // 32
+		, "ユースト2「」", "ユースト2｢｣", "ust2「」", "ust2｢｣", "ustream2「」"
+		, "ustream2｢｣", "ユーストリーム2「」", "ユーストリーム2｢｣", "ユースト２「」"
+		, "ユースト２｢｣", "ust２「」", "ust２｢｣", "ustream２「」", "ustream２｢｣"
+		, "ユーストリーム２「」", "ユーストリーム２｢｣" // 48
+		, "ジャスティン2「」", "ジャスティン2｢｣", "jus2「」", "jus2｢｣", "justin2「」"
+		, "justin2｢｣", "ジャス2「」", "ジャス2｢｣", "ジャスティン２「」"
+		, "ジャスティン２｢｣", "jus２「」", "jus２｢｣", "justin２「」", "justin２｢｣"
+		, "ジャス２「」", "ジャス２｢｣" // 64
+	);
+	log("StreamClose testPattern: " + testPattern.length);
+	var success = " ";
+	for ( ct in ctStreamClose )
+	{
+		for ( st in streams )
+		{
+			re = new RegExp ( "^" + streams[st].nameRegExp + titleBracketOpen + titleBracketClose + "$" );
+			if ( true == re.test ( ctStreamClose[ct] ) )
+			{
+				success = success + ct + "-" + st + " ";
+			}
+		}
+	}
+	log ( success );
+
+	/*
+	success が下記のようであればうまくいっている
+	0-0 1-0 2-0 3-0 4-0 5-0 6-0 7-0 8-0 9-0 10-0 11-0 12-0 13-0 14-0 15-0
+	16-1 17-1 18-1 19-1 20-1 21-1 22-1 23-1 24-1 25-1 26-1 27-1 28-1 29-1 30-1 31-1
+	32-2 33-2 34-2 35-2 36-2 37-2 38-2 39-2 40-2 41-2 42-2 43-2 44-2 45-2 46-2 47-2
+	48-3 49-3 50-3 51-3 52-3 53-3 54-3 55-3 56-3 57-3 58-3 59-3 60-3 61-3 62-3 63-3 
+	*/
+}
 
