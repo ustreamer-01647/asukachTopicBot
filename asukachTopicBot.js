@@ -1,6 +1,18 @@
 /* asukachTopicBot
 author ustreamer-01647
-latest update 2012年1月31日7:57:12
+latest update 2012年1月31日9:01:37
+
+memo
+次回はトピック変更機能の骨格を作る．済んだらコマンド受付とトピック変更実働部分，そしてオペ権付与へ
+
+トピックボット機能
+	初期化
+	対決設定と解除
+	大会設定と解除
+	ストリーム使用宣言
+	タイトル設定
+x	使用解除
+
 */
 
 /* 用語
@@ -37,7 +49,6 @@ var ReserveText = "準備中";
 // 正規表現
 var titleBracketOpen = "[「｢]";
 var titleBracketClose = "[」｣]";
-var u1stringPattern = "(ユースト(リーム)?)|(ust(ream)?)[1１]";
 
 // global vars
 var channelTopic;
