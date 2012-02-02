@@ -258,14 +258,14 @@ function testCommandStreamClose ()
 	);
 	log("StreamClose testPattern: " + testPattern.length);
 	var success = " ";
-	for ( ct in ctStreamClose )
+	for ( tp in testPattern )
 	{
 		for ( st in streams )
 		{
 			re = new RegExp ( "^" + streams[st].nameRegExp + titleBracketOpen + titleBracketClose + "$", "i" );
-			if ( true == re.test ( ctStreamClose[ct] ) )
+			if ( true == re.test ( testPattern[tp] ) )
 			{
-				success = success + ct + "-" + st + " ";
+				success = success + tp + "-" + st + " ";
 			}
 		}
 	}
