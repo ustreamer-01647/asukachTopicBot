@@ -115,7 +115,7 @@ function parseTopic ( topic )
 		for ( i in streams )
 		{
 			// 接頭辞（Ust01だのJus02だの）を探す
-			regExp = new RegExp ( "^" + streams[i].name );
+			regExp = new RegExp ( "^" + streams[i].name, "i" );
 			result = channelTopic.substring(endBracket).search( regExp );
 			if ( -1 == result )
 			{
@@ -262,7 +262,7 @@ function testCommandStreamClose ()
 	{
 		for ( st in streams )
 		{
-			re = new RegExp ( "^" + streams[st].nameRegExp + titleBracketOpen + titleBracketClose + "$" );
+			re = new RegExp ( "^" + streams[st].nameRegExp + titleBracketOpen + titleBracketClose + "$", "i" );
 			if ( true == re.test ( ctStreamClose[ct] ) )
 			{
 				success = success + ct + "-" + st + " ";
