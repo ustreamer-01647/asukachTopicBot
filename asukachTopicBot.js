@@ -42,7 +42,13 @@ x	使用解除
 
 */
 
+// flag
+var IsWorking = false;
+
 // setting
+var BotName = "田楽トピックボット";
+var SwitchOnCommand = "(オン|on)";
+var SwitchOffCommand = "(オフ|off)";
 var TargetChannel = "#paulga";
 var ReserveText = "準備中";
 
@@ -55,6 +61,13 @@ var channelTopic;
 var streams;
 var taiketu;
 var taikai;
+
+/** Privmsgを送信する
+*/
+function sendPrivmsg ( text )
+{
+	sendRaw ( "Privmsg " + TargetChannel + " " + text );
+}
 
 /** ストリーム情報クラス
  @param name ストリーム名称
@@ -185,15 +198,59 @@ function event::onChannelText(prefix, channel, text)
 	if ( prefix.nick != "paulga" )
 		return;
 	
+	// トピックボット動作スイッチ
+	re = new RegExp ( "^" + BotName + titleBracketOpen + "(.+)$" );
+	if ( true == re.test ( text ) )
+	{
+		switchTopicBot ( RegExp.$1 );
+	}
+	
 	// 平時に使用する
 	//parseCommand ( text );
 	
 	// トピック変更コマンドテスト
-	commandtest();
+	//commandtest();
 	
 	// トピック解析テスト
 	// 332 replyを誘う
 	//if ( text == "chk" ) topic( TargetChannel );
+}
+
+/** トピックボット動作状態を変更する
+@param Substring 部分文字列．元が"田楽トピックボット「ああああ」"ならば，"ああああ」"
+*/
+function switchTopicBot ( Substring )
+{
+	showIsWorking();
+	
+	// 有効化は動作停止中に限る
+	re = new RegExp ( "^" + SwitchOnCommand + titleBracketClose + "$" );
+	if ( true == re.test ( Substring ) && ( false == IsWorking ) )
+	{
+		IsWorking = true;
+		sendPrivmsg ( BotName + "は動作を開始しました");
+	}
+	
+	// 無効化は動作中に限る
+	re = new RegExp ( "^" + SwitchOffCommand + titleBracketClose + "$" );
+	if ( true == re.test ( Substring ) && ( true == IsWorking )  )
+	{
+		IsWorking = false;
+		sendPrivmsg ( BotName + "は動作を停止しました");
+	}
+}
+
+/** トピックボット動作状態を表示する
+*/
+function showIsWorking ()
+{
+	if ( IsWorking )
+	{
+		sendPrivmsg ( BotName + "は動作中です");
+	}else
+	{
+		sendPrivmsg ( BotName + "は動作停止中です");
+	}
 }
 
 function parseCommand ( text )
@@ -232,7 +289,7 @@ function commandtest ()
 	initialize();
 	
 	// ストリーム終了コマンド
-	testCommandStreamClose();
+	//testCommandStreamClose();
 }
 
 // ストリーム終了コマンドテスト
